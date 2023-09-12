@@ -60,6 +60,51 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        sendPendingEmails()
+    );
+});
+
+async function sendPendingEmails() {
+    const db = await openDB('AppDatabase', 1);
+    const emails = await db.getAll('requests');
+
+    for (let email of emails) {
+        try {
+            const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': '_SoL-HVIeoSJAhtZ7W6mU' // Reemplaza 'TU_API_KEY' con tu clave de API de EmailJS
+                },
+                body: JSON.stringify({
+                    service_id: 'service_159lgyl', // Reemplaza con tu ID de servicio de EmailJS
+                    template_id: 'template_qouw3so', // Reemplaza con tu ID de plantilla de EmailJS
+                    user_id: 'cataYOEwOQrXCUnMT', // Reemplaza con tu ID de usuario de EmailJS  
+                    template_params: {
+                        code: email.code,
+                        localNumber: email.localNumber
+                    }
+                })
+            });
+
+            if (response.ok) {
+                // Si el correo se envía con éxito, elimina el correo de IndexedDB
+                await db.delete('requests', email.id);
+            }
+        } catch (error) {
+            console.error("Error reenviando el correo:", error);
+        }
+    }
+
+    // Notificación para informarte que se completó el reenvío de correos
+    self.registration.showNotification('Reenvío de correos completado', {
+        body: 'Verifica la consola para más detalles.',
+        icon: '/logo192.png'
+    });
+}
+
+self.addEventListener('activate', (event) => {
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
         caches.keys()
@@ -74,36 +119,3 @@ self.addEventListener('activate', (event) => {
             })
     );
 });
-
-self.addEventListener('sync', event => {
-    if (event.tag === 'send-emails') {
-        event.waitUntil(reenviarEmailsPendientes());
-    }
-});
-
-// Función para reenviar correos pendientes
-async function reenviarEmailsPendientes() {
-    const db = await openDB('AppDatabase', 1);
-    const tx = db.transaction('requests', 'readwrite');
-    const store = tx.objectStore('requests');
-    const emails = await store.getAll();
-
-    for (let email of emails) {
-        try {
-            const response = await fetch('reenviaremail.js', {
-                method: 'POST',
-                body: JSON.stringify(email),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.ok) {
-                store.delete(email.id);
-            }
-        } catch (error) {
-            console.error("Error reenviando el correo:", error);
-        }
-    }
-
-    await tx.done;
-}
