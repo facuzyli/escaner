@@ -26,6 +26,13 @@ self.addEventListener('install', event => {
   );
 });
 
+self.addEventListener('online', () => {
+    
+    clients.matchAll().then(clients => {
+        clients.forEach(client => client.postMessage('online'));
+    });
+});
+
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
