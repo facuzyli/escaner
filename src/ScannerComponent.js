@@ -4,7 +4,6 @@ import emailjs from 'emailjs-com';
 import { storeEmail, retryPendingEmails } from './RetryEmails';
 
 export const sendEmail = (code, localNumber) => {
-    console.log("sendEmail triggered with code:", code);
     const templateParams = {
         code: code,
         localNumber: localNumber,
@@ -23,20 +22,17 @@ function ScannerComponent() {
     const [scannedCode, setScannedCode] = useState('');
     const [localNumber, setLocalNumber] = useState('');
     const [isScanning, setIsScanning] = useState(false);
-    const [emailSent, setEmailSent] = useState(false);
-    let scanner;
+    let scanner; // Declaración de scanner
 
     const onScanSuccess = (decodedText) => {
-        
-        console.log("onScanSuccess triggered with code:", decodedText);
-        if (!scannedCode && !emailSent) {
-            
-            setScannedCode(decodedText);
-            const localNumber = document.getElementById('localNumberInput').value;
+        const userConfirmation = window.confirm(`Tu código es el: ${decodedText}. ¿Deseas enviar el correo?`);
+        if (userConfirmation) {
             sendEmail(decodedText, localNumber);
-            setEmailSent(true); // Marcar el correo electrónico como enviado
-            setTimeout(() => setEmailSent(false), 5000); // Restablecer después de 5 segundos
-            
+            setScannedCode(decodedText);
+            setScannedCode(''); // Limpiar el código escaneado
+        } else {
+            setScannedCode(''); // Limpiar el código escaneado
+            setIsScanning(true);
         }
     };
 
@@ -44,53 +40,36 @@ function ScannerComponent() {
         console.error(`Error during scanning: ${error}`);
     };
 
-    
+    const startScanning = () => {
+        if (localNumber && Number.isInteger(Number(localNumber))) {
+            setIsScanning(true);
+        } else {
+            alert('Por favor, ingrese un número de local válido.');
+        }
+    };
 
     useEffect(() => {
         if (isScanning) {
-            console.log("Scanner started");
             const config = { fps: 10, qrbox: 250, formats: ["CODE_39"] };
             scanner = new Html5QrcodeScanner("reader", config);
             scanner.render(onScanSuccess, onScanError);
-            
-            return () => {
-                scanner.clear();
-            };
         }
     }, [scannedCode, isScanning]);
 
-    useEffect(() => {
-        const handleOnline = async () => {
-            console.log("Evento online detectado. Intentando reenviar correos pendientes...");
-            try {
-                await retryPendingEmails();
-                console.log("Reenvío de correos pendientes completado.", retryPendingEmails);
-                alert('Todos los correos electrónicos pendientes se han enviado con éxito.');
-            } catch (error) {
-                console.error("Error al reenviar correos:", error.message, error);
-                alert('Ocurrió un error al intentar enviar correos electrónicos pendientes.');
-            }
-        };
-        
-        window.addEventListener('online', handleOnline);
-        return () => {
-            window.removeEventListener('online', handleOnline);
-        };
-    }, []);
     return (
         <div>
             <div>
                 <label>Número de Local: </label>
                 <input 
                     id="localNumberInput"
-                    type="text" 
+                    type="number" 
                     value={localNumber} 
                     onChange={(e) => setLocalNumber(e.target.value)} 
                 />
             </div>
             <div id="reader"></div>
             <p>Código escaneado: {scannedCode}</p>
-            {!isScanning && <button onClick={() => setIsScanning(true)}>Iniciar escáner</button>}
+            {!isScanning && <button onClick={startScanning}>Iniciar escáner</button>}
             {scannedCode && <button onClick={() => {
                 setScannedCode('');
                 setIsScanning(false);
