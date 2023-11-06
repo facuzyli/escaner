@@ -1,4 +1,4 @@
-const CACHE_NAME = 'escaner-cache-v1';
+const CACHE_NAME = 'escaner-cache-v2';  // Actualizar el nombre del caché
 
 // Recursos para almacenar en caché
 const urlsToCache = [
@@ -13,10 +13,10 @@ const urlsToCache = [
     './static/js/main.chunk.js',
     './static/js/2.chunk.js',
     './static/js/runtime-main.js',
+    // Agregar cualquier otra imagen, fuente, script o hoja de estilo que la aplicación utilice
 ];
 
 self.addEventListener('install', event => {
-  // Realizar acciones de instalación
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -27,7 +27,6 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('online', () => {
-    
     clients.matchAll().then(clients => {
         clients.forEach(client => client.postMessage('online'));
     });
@@ -37,12 +36,14 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Devuelve la respuesta del caché si está disponible
         if (response) {
           return response;
         }
-        // Si no, realiza la solicitud a la red
-        return fetch(event.request);
+        if (navigator.onLine) {
+          return fetch(event.request);
+        } else {
+          return new Response('Estás offline. Por favor, verifica tu conexión y vuelve a intentarlo.');
+        }
       })
   );
 });

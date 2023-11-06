@@ -1,11 +1,12 @@
 import { sendEmail } from './ScannerComponent';
+import { emailStatus } from './index.js';
 const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
 
 
 // Función para guardar un correo electrónico en IndexedDB si no se pudo enviar
 export const storeEmail = (code, localNumber) => {
-    console.log("Storing email with code:", code);
-    const openRequest = indexedDB.open("AppDatabase", 1);
+    console.log("Storing email with code:", localNumber);
+    const openRequest = indexedDB.open("AppDatabases", 1);
 
     openRequest.onupgradeneeded = function() {
         const db = openRequest.result;
@@ -18,21 +19,28 @@ export const storeEmail = (code, localNumber) => {
         const db = openRequest.result;
         const transaction = db.transaction(["emails"], "readwrite");
         const store = transaction.objectStore("emails");
-        store.add({ code: code, localNumber: localNumber });
+        store.add({ code: code, localNumber: localNumber }).onsuccess = () => {
+            emailStatus.stored = true;
+            console.log("Stored email with code:", localNumber);
+        };
+        
     };
 
+   
     openRequest.onerror = function() {
         console.error("Error", openRequest.error);
+        
     };
 };
 
 // Función para obtener todos los correos electrónicos pendientes
 export const getPendingEmails = () => {
     return new Promise((resolve, reject) => {
-        const openRequest = indexedDB.open("AppDatabase", 1);
+        const openRequest = indexedDB.open("AppDatabases", 1);
 
         openRequest.onsuccess = function(e) {
             const db = e.target.result;
+            //luego de aca me manda el error
             const transaction = db.transaction(["emails"], "readwrite");
             const store = transaction.objectStore("emails");
             const getAllRequest = store.getAll();
@@ -57,7 +65,7 @@ export const getPendingEmails = () => {
 export const deleteEmailByCodeAndLocalNumber = (code, localNumber) => {
     console.log("Deleting email with code:", code, "and localNumber:", localNumber);
     return new Promise((resolve, reject) => {
-        const openRequest = indexedDB.open("AppDatabase", 1);
+        const openRequest = indexedDB.open("AppDatabases", 1);
 
         openRequest.onsuccess = function(e) {
             const db = e.target.result;

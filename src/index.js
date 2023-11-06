@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { retryPendingEmails } from './RetryEmails';
+export const emailStatus = {
+  stored: false
+};
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -21,6 +25,39 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+
+
+
+
+// Función para verificar la conexión a Internet
+const checkInternetConnection = () => {
+  return fetch('https://www.google.com', { mode: 'no-cors' })
+    .then(() => {
+      return true;  // La solicitud fue exitosa, hay conexión a Internet
+    })
+    .catch(() => {
+      return false;  // Hubo un error, asumimos que no hay conexión
+    });
+};
+
+// Verifica la conexión a intervalos regulares
+setInterval(async () => {
+  const isConnected = await checkInternetConnection();
+  console.log("Conectado a Internet:", isConnected);
+  if (isConnected && emailStatus.stored) {
+    console.log("Un email ha sido almacenado.");
+    retryPendingEmails();
+    emailStatus.stored = false;  // Restablece la propiedad para la próxima verificación
+  }
+}, 5000);
+
+
+
+
+
+
+
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

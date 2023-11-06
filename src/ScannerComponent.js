@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import emailjs from 'emailjs-com';
 import { storeEmail, retryPendingEmails } from './RetryEmails';
@@ -22,16 +22,22 @@ function ScannerComponent() {
     const [scannedCode, setScannedCode] = useState('');
     const [localNumber, setLocalNumber] = useState('');
     const [isScanning, setIsScanning] = useState(false);
-    let scanner; // Declaración de scanner
+    const [manualEntry, setManualEntry] = useState(false);
+    let scanner;
+
+    const localNumberRef = useRef(localNumber);
+
+    useEffect(() => {
+        localNumberRef.current = localNumber;
+    }, [localNumber]);
 
     const onScanSuccess = (decodedText) => {
         const userConfirmation = window.confirm(`Tu código es el: ${decodedText}. ¿Deseas enviar el correo?`);
         if (userConfirmation) {
-            sendEmail(decodedText, localNumber);
-            setScannedCode(decodedText);
-            setScannedCode(''); // Limpiar el código escaneado
+            sendEmail(decodedText, localNumberRef.current);
+            setScannedCode('');
         } else {
-            setScannedCode(''); // Limpiar el código escaneado
+            setScannedCode('');
             setIsScanning(true);
         }
     };
@@ -43,6 +49,14 @@ function ScannerComponent() {
     const startScanning = () => {
         if (localNumber && Number.isInteger(Number(localNumber))) {
             setIsScanning(true);
+        } else {
+            alert('Por favor, ingrese un número de local válido.');
+        }
+    };
+
+    const startManualEntry = () => {
+        if (localNumber && Number.isInteger(Number(localNumber))) {
+            setManualEntry(true);
         } else {
             alert('Por favor, ingrese un número de local válido.');
         }
@@ -69,7 +83,25 @@ function ScannerComponent() {
             </div>
             <div id="reader"></div>
             <p>Código escaneado: {scannedCode}</p>
-            {!isScanning && <button onClick={startScanning}>Iniciar escáner</button>}
+            {!isScanning && !manualEntry && <button onClick={startScanning}>Iniciar escáner</button>}
+            {!isScanning && !manualEntry && <button onClick={startManualEntry}>Ingresar código</button>}
+            {manualEntry && (
+                <div>
+                    <input 
+                        type="text" 
+                        value={scannedCode} 
+                        onChange={(e) => setScannedCode(e.target.value)} 
+                        placeholder="Ingrese el código manualmente"
+                    />
+                    <button onClick={() => {
+                        sendEmail(scannedCode, localNumber);
+                        setScannedCode('');
+                        setManualEntry(false);
+                    }}>
+                        Enviar
+                    </button>
+                </div>
+            )}
             {scannedCode && <button onClick={() => {
                 setScannedCode('');
                 setIsScanning(false);
