@@ -4,8 +4,8 @@ const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexe
 
 
 // Función para guardar un correo electrónico en IndexedDB si no se pudo enviar
-export const storeEmail = (code, localNumber) => {
-    console.log("Storing email with code:", localNumber);
+export const storeEmail = (code, localNumber, store) => {
+    console.log("Storing email with code:", code, "and localNumber:", localNumber, "and store:", store);
     const openRequest = indexedDB.open("AppDatabases", 1);
 
     openRequest.onupgradeneeded = function() {
@@ -18,10 +18,10 @@ export const storeEmail = (code, localNumber) => {
     openRequest.onsuccess = function() {
         const db = openRequest.result;
         const transaction = db.transaction(["emails"], "readwrite");
-        const store = transaction.objectStore("emails");
-        store.add({ code: code, localNumber: localNumber }).onsuccess = () => {
+        const storeDB = transaction.objectStore("emails");
+        storeDB.add({ code: code, localNumber: localNumber, store: store }).onsuccess = () => {
             emailStatus.stored = true;
-            console.log("Stored email with code:", localNumber);
+            console.log("Stored email with code:", code, "and localNumber:", localNumber, "and store:", store);
         };
         
     };
@@ -62,8 +62,8 @@ export const getPendingEmails = () => {
 };
 
 // Función para eliminar un correo electrónico específico después de enviarlo con éxito
-export const deleteEmailByCodeAndLocalNumber = (code, localNumber) => {
-    console.log("Deleting email with code:", code, "and localNumber:", localNumber);
+export const deleteEmailByCodeAndLocalNumber = (code, localNumber, store) => {
+    console.log("Deleting email with code:", code, "and localNumber:", localNumber, "and store:", store);
     return new Promise((resolve, reject) => {
         const openRequest = indexedDB.open("AppDatabases", 1);
 
@@ -117,9 +117,9 @@ export const retryPendingEmails = async () => {
     for (let email of pendingEmails) {
         
         // Envio mails pendientes
-        await sendEmail(email.code, email.localNumber);
+        await sendEmail(email.code, email.localNumber, email.store);
         // Si el correo electrónico se envía con éxito, elimínalo de IndexedDB
-        await deleteEmailByCodeAndLocalNumber(email.code, email.localNumber);
+        await deleteEmailByCodeAndLocalNumber(email.code, email.localNumber, email.store);
 
         
     }

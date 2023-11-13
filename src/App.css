@@ -58,10 +58,12 @@ label {
   display: block;
   margin-bottom: 10px;
   font-weight: bold;
+  font-size: 20px;
+  
 }
 
 input[type="text"] {
-  width: 100%;
+  width: 30%;
   padding: 10px;
   font-size: 16px;
   border: 1px solid #ccc;
@@ -69,13 +71,66 @@ input[type="text"] {
   margin-bottom: 20px;
 }
 
+input[type="number"] {
+  width: 30%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+select {
+  width: 20%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .ScannerComponent {
+    padding: 10px;
+  }
+
+  label {
+    font-size: 16px;
+  }
+
+  input[type="text"] {
+    font-size: 14px;
+    width: 50%;
+  }
+  input[type="number"] {
+    font-size: 14px;
+    width: 50%;
+  }
+
+  select {
+    font-size: 14px;
+    width: 50%;
+  }
+}
+
 @media (max-width: 480px) {
   h1 {
     font-size: 20px;
   }
+  select {
+    font-size: 14px;
+    width: 100%;
+  }
 
   input[type="text"], button {
     font-size: 14px;
+    width: 100%;
+    padding: 8px;
+  }
+
+  input[type="number"] {
+    font-size: 14px;
+    width: 100%;
     padding: 8px;
   }
 }

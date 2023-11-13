@@ -3,10 +3,11 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import emailjs from 'emailjs-com';
 import { storeEmail, retryPendingEmails } from './RetryEmails';
 
-export const sendEmail = (code, localNumber) => {
+export const sendEmail = (code, localNumber, store) => {
     const templateParams = {
         code: code,
         localNumber: localNumber,
+        store: store,
     };
 
     emailjs.send('service_159lgyl', 'template_qouw3so', templateParams, 'cataYOEwOQrXCUnMT')
@@ -14,7 +15,7 @@ export const sendEmail = (code, localNumber) => {
             alert(`La entrega fue notificada. Código de barras: ${code}`);
         }, (error) => {
             alert('Error al enviar el correo. Se intentará enviar más tarde.');
-            storeEmail(code, localNumber);
+            storeEmail(code, localNumber , store);
         });
 };
 
@@ -23,6 +24,7 @@ function ScannerComponent() {
     const [localNumber, setLocalNumber] = useState('');
     const [isScanning, setIsScanning] = useState(false);
     const [manualEntry, setManualEntry] = useState(false);
+    const [selectedStore, setSelectedStore] = useState('');
     let scanner;
 
     const localNumberRef = useRef(localNumber);
@@ -34,7 +36,7 @@ function ScannerComponent() {
     const onScanSuccess = (decodedText) => {
         const userConfirmation = window.confirm(`Tu código es el: ${decodedText}. ¿Deseas enviar el correo?`);
         if (userConfirmation) {
-            sendEmail(decodedText, localNumberRef.current);
+            sendEmail(decodedText, localNumberRef.current, selectedStore);
             setScannedCode('');
         } else {
             setScannedCode('');
@@ -47,7 +49,7 @@ function ScannerComponent() {
     };
 
     const startScanning = () => {
-        if (localNumber && Number.isInteger(Number(localNumber))) {
+        if (localNumber && Number.isInteger(Number(localNumber)) && selectedStore) {
             setIsScanning(true);
         } else {
             alert('Por favor, ingrese un número de local válido.');
@@ -55,12 +57,14 @@ function ScannerComponent() {
     };
 
     const startManualEntry = () => {
-        if (localNumber && Number.isInteger(Number(localNumber))) {
+        if (localNumber && Number.isInteger(Number(localNumber)) && selectedStore) {
             setManualEntry(true);
         } else {
-            alert('Por favor, ingrese un número de local válido.');
+            alert('Por favor, ingrese un local válido.');
         }
     };
+
+   
 
     useEffect(() => {
         if (isScanning) {
@@ -72,6 +76,21 @@ function ScannerComponent() {
 
     return (
         <div>
+            <div>
+                <label>Tienda: </label>
+                <select
+                    value={selectedStore}
+                    onChange={(e) => {
+                        //console.log("Store selected:", e.target.value); 
+                        setSelectedStore(e.target.value);
+                    }}
+                
+                >
+                    <option value="">Seleccione una tienda</option>
+                    <option value="Macowens">Macowens</option>
+                    <option value="Devre">Devre</option>
+                </select>
+            </div>
             <div>
                 <label>Número de Local: </label>
                 <input 
@@ -94,7 +113,7 @@ function ScannerComponent() {
                         placeholder="Ingrese el código manualmente"
                     />
                     <button onClick={() => {
-                        sendEmail(scannedCode, localNumber);
+                        sendEmail(scannedCode, localNumber, selectedStore);
                         setScannedCode('');
                         setManualEntry(false);
                     }}>
