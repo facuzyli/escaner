@@ -3,11 +3,15 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import emailjs from 'emailjs-com';
 import { storeEmail, retryPendingEmails } from './RetryEmails';
 
-export const sendEmail = (code, localNumber, store) => {
+export const sendEmail = (code, localNumber, store, scanDateTime) => {
+
+    const argentinaDateTime = scanDateTime.toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+
     const templateParams = {
         code: code,
         localNumber: localNumber,
         store: store,
+        scanDateTime: argentinaDateTime, // Usar la fecha y hora de Argentina 
     };
 
     emailjs.send('service_159lgyl', 'template_qouw3so', templateParams, 'cataYOEwOQrXCUnMT')
@@ -15,7 +19,7 @@ export const sendEmail = (code, localNumber, store) => {
             alert(`La entrega fue notificada. Código de barras: ${code}`);
         }, (error) => {
             alert('Error al enviar el correo. Se intentará enviar más tarde.');
-            storeEmail(code, localNumber , store);
+            storeEmail(code, localNumber , store, scanDateTime);
         });
 };
 
@@ -34,9 +38,10 @@ function ScannerComponent() {
     }, [localNumber]);
 
     const onScanSuccess = (decodedText) => {
+        const scanDateTime = new Date(); // Obtener la fecha y hora actual
         const userConfirmation = window.confirm(`Tu código es el: ${decodedText}. ¿Deseas enviar el correo?`);
         if (userConfirmation) {
-            sendEmail(decodedText, localNumberRef.current, selectedStore);
+            sendEmail(decodedText, localNumberRef.current, selectedStore, scanDateTime);
             setScannedCode('');
         } else {
             setScannedCode('');
@@ -52,7 +57,7 @@ function ScannerComponent() {
         if (localNumber && Number.isInteger(Number(localNumber)) && selectedStore) {
             setIsScanning(true);
         } else {
-            alert('Por favor, ingrese un número de local válido.');
+            alert('Por favor ingrese una tienda válida');
         }
     };
 
@@ -60,7 +65,7 @@ function ScannerComponent() {
         if (localNumber && Number.isInteger(Number(localNumber)) && selectedStore) {
             setManualEntry(true);
         } else {
-            alert('Por favor, ingrese un local válido.');
+            alert('Por favor ingrese una tienda válida');
         }
     };
 
@@ -98,6 +103,7 @@ function ScannerComponent() {
                     type="number" 
                     value={localNumber} 
                     onChange={(e) => setLocalNumber(e.target.value)} 
+                    placeholder="Ingrese el número de local"
                 />
             </div>
             <div id="reader"></div>
@@ -113,7 +119,8 @@ function ScannerComponent() {
                         placeholder="Ingrese el código manualmente"
                     />
                     <button onClick={() => {
-                        sendEmail(scannedCode, localNumber, selectedStore);
+                        const scanDateTime = new Date(); // Obtener la fecha y hora actual para la entrada manual
+                        sendEmail(scannedCode, localNumber, selectedStore, scanDateTime);
                         setScannedCode('');
                         setManualEntry(false);
                     }}>
