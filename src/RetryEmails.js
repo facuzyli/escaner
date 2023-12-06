@@ -1,11 +1,9 @@
-import { sendEmail } from './ScannerComponent';
+import { sendToAPI } from './ScannerComponent';
 import { emailStatus } from './index.js';
 const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
 
-
 // Función para guardar un correo electrónico en IndexedDB si no se pudo enviar
-export const storeEmail = (code, localNumber, store, scanDateTime) => {
-    console.log("Storing email with code:", code, "and localNumber:", localNumber, "and store:", store, "and scanDateTime:", scanDateTime);
+export const storeEmail = (code, scanDateTime) => {
     const openRequest = indexedDB.open("AppDatabases", 1);
 
     openRequest.onupgradeneeded = function() {
@@ -19,17 +17,13 @@ export const storeEmail = (code, localNumber, store, scanDateTime) => {
         const db = openRequest.result;
         const transaction = db.transaction(["emails"], "readwrite");
         const storeDB = transaction.objectStore("emails");
-        storeDB.add({ code: code, localNumber: localNumber, store: store ,scanDateTime: scanDateTime}).onsuccess = () => {
+        storeDB.add({ code, scanDateTime }).onsuccess = () => {
             emailStatus.stored = true;
-            console.log("Stored email with code:", code, "and localNumber:", localNumber, "and store:", store, "and scanDateTime:", scanDateTime);
         };
-        
     };
 
-   
     openRequest.onerror = function() {
         console.error("Error", openRequest.error);
-        
     };
 };
 
@@ -40,13 +34,11 @@ export const getPendingEmails = () => {
 
         openRequest.onsuccess = function(e) {
             const db = e.target.result;
-            //luego de aca me manda el error
-            const transaction = db.transaction(["emails"], "readwrite");
+            const transaction = db.transaction(["emails"], "readonly");
             const storeDB = transaction.objectStore("emails");
             const getAllRequest = storeDB.getAll();
 
             getAllRequest.onsuccess = function() {
-                console.log("Fetched pending emails:", getAllRequest.result);
                 resolve(getAllRequest.result);
             };
 
@@ -62,8 +54,7 @@ export const getPendingEmails = () => {
 };
 
 // Función para eliminar un correo electrónico específico después de enviarlo con éxito
-export const deleteEmailByCodeAndLocalNumber = (code, localNumber, store, scanDateTime) => {
-    console.log("Deleting email with code:", code, "and localNumber:", localNumber, "and store:", store, "and scanDateTime:", scanDateTime);
+export const deleteEmailByCode = (code, scanDateTime) => {
     return new Promise((resolve, reject) => {
         const openRequest = indexedDB.open("AppDatabases", 1);
 
@@ -72,28 +63,23 @@ export const deleteEmailByCodeAndLocalNumber = (code, localNumber, store, scanDa
             const transaction = db.transaction(["emails"], "readwrite");
             const storeDB = transaction.objectStore("emails");
             
-            // Crear un cursor para buscar el registro basado en code y localNumber
             const cursorRequest = storeDB.openCursor();
 
             cursorRequest.onsuccess = function(event) {
                 const cursor = event.target.result;
                 if (cursor) {
-                    if (cursor.value.code === code && cursor.value.localNumber === localNumber) {
-                        // Si encontramos el registro correcto, lo eliminamos
+                    if (cursor.value.code === code && cursor.value.scanDateTime === scanDateTime) {
                         const deleteRequest = cursor.delete();
                         deleteRequest.onsuccess = function() {
-                            console.log("Deleted email with code:", code, "and localNumber:", localNumber);
                             resolve();
                         };
                         deleteRequest.onerror = function() {
                             reject(new Error("Error deleting email from IndexedDB."));
                         };
                     } else {
-                        // Si no es el registro correcto, continuamos con el siguiente
                         cursor.continue();
                     }
                 } else {
-                    // No encontramos el registro
                     reject(new Error("Email not found in IndexedDB."));
                 }
             };
@@ -111,16 +97,9 @@ export const deleteEmailByCodeAndLocalNumber = (code, localNumber, store, scanDa
 
 // Función para reintentar enviar correos electrónicos pendientes
 export const retryPendingEmails = async () => {
-    console.log("retryPendingEmails triggered");
     const pendingEmails = await getPendingEmails();
-    console.log("Correos electrónicos pendientes:", pendingEmails);
     for (let email of pendingEmails) {
-        
-        // Envio mails pendientes
-        await sendEmail(email.code, email.localNumber, email.store, email.scanDateTime);
-        // Si el correo electrónico se envía con éxito, elimínalo de IndexedDB
-        await deleteEmailByCodeAndLocalNumber(email.code, email.localNumber, email.store, email.scanDateTime);
-
-        
+        await sendToAPI(email.code, email.scanDateTime);
+        await deleteEmailByCode(email.code, email.scanDateTime);
     }
 };
