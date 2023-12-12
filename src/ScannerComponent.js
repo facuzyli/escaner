@@ -83,12 +83,28 @@ function ScannerComponent() {
         }
     }, [isScanning]);
 
+    const resetView = () => {
+        setIsScanning(false);
+        setManualEntry(false);
+        setScannedCode('');
+    };
+
     return (
         <div>
-            <div id="reader"></div>
-            <p>Código escaneado: {scannedCode}</p>
-            {!isScanning && !manualEntry && <button onClick={() => setIsScanning(true)}>Iniciar escáner</button>}
-            {!isScanning && !manualEntry && <button onClick={() => setManualEntry(true)}>Ingresar código</button>}
+            {/* Renderizar el div reader solo si isScanning es true */}
+            {isScanning && <div id="reader"></div>}
+
+            {isScanning && <p>Código escaneado: {scannedCode}</p>}
+
+            {/* Mostrar botones iniciales solo si no se está escaneando ni ingresando manualmente */}
+            {!isScanning && !manualEntry && (
+                <>
+                    <button onClick={() => setIsScanning(true)}>Iniciar escáner</button>
+                    <button onClick={() => setManualEntry(true)}>Ingresar código</button>
+                </>
+            )}
+
+            {/* Mostrar entrada manual y botón de envío si manualEntry es true */}
             {manualEntry && (
                 <div>
                     <input 
@@ -106,10 +122,11 @@ function ScannerComponent() {
                     </button>
                 </div>
             )}
-            {scannedCode && <button onClick={() => {
-                setScannedCode('');
-                setIsScanning(false);
-            }}>Reiniciar escáner</button>}
+
+            {/* Mostrar botón de reinicio si se está escaneando o ingresando manualmente */}
+            {(isScanning || manualEntry) && (
+                <button onClick={resetView}>Volver</button>
+            )}
         </div>
     );
 }

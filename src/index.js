@@ -45,10 +45,10 @@ const checkInternetConnection = () => {
 setInterval(async () => {
   const isConnected = await checkInternetConnection();
   console.log("Conectado a Internet:", isConnected);
-  if (isConnected && emailStatus.stored) {
+  console.log(localStorage.length);
+  if (isConnected && localStorage.length > 0) {
     console.log("Un email ha sido almacenado.");
     retryPendingEmails();
-    emailStatus.stored = false;  // Restablece la propiedad para la próxima verificación
   }
 }, 5000);
 
