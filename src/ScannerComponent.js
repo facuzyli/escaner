@@ -17,22 +17,34 @@ const formatDateTime = (date) => {
 };
 
 // Función para enviar el código y la fecha/hora a la API
-export const sendToAPI = async (code) => {
-    // Obtener la fecha y hora actual
-    const currentDateTime = new Date();
+export const sendToAPI = async (code, setIsLoading = null, dateTime = null) => {
+    console.log('fecha y hora: ', dateTime);
+
+    if (setIsLoading) setIsLoading(true);
 
     // Formatear la fecha y hora en el formato 'ddMMyyyyHHmm'
-    const formattedDateTime = formatDateTime(currentDateTime);
-
+    const formattedDateTime = dateTime || formatDateTime(new Date());
     console.log(`Código: ${code}, Fecha/hora: ${formattedDateTime}`);
+
+    const url = `https://distribucion.dikter.com.ar/hoja/api/proxy.php?codigoEnvio=${code}&fechaHora=${formattedDateTime}`;
+    console.log('URL de la solicitud:', url);
+
     try {
-        const response = await fetch(`http://localhost:3000/index.php/CodigoEnvio/${code}/${formattedDateTime}`, {
+        const response = await fetch(url, {
             method: 'GET', 
             headers: {
                 'Content-Type': 'application/json'
             }
         });
 
+        // Imprimir la respuesta completa y sus encabezados
+        console.log('Respuesta completa:', response);
+        console.log('Encabezados de la respuesta:', Array.from(response.headers.entries()));
+
+        // Verificar si la respuesta es JSON
+        
+        
+        console.log('ESTATUS DE LA RESPUESTA: ', response.status);
         if (!response.ok) {
             if (response.status === 500) {
                 alert('Código ingresado es incorrecto, verifique o comuníquese con central.');
@@ -41,19 +53,24 @@ export const sendToAPI = async (code) => {
             }
         } else {
             const result = await response.json();
-            alert('Código y fecha/hora enviados a la API con éxito.');
+            console.log('Respuesta JSON:', result);
+            alert('La entrega fue notificada correctamente. Código de barras: ' + code);
         }
     } catch (error) {
         console.error('Error al conectar con la API:', error);
         alert('Error al enviar el correo. Se intentará enviar más tarde.');
-        storeEmail(code, currentDateTime);
+        storeEmail(code, formattedDateTime);
+        console.log('Correo guardado en localStorage:', { code, formattedDateTime });
     }
+
+    if (setIsLoading) setIsLoading(false);
 };
 
 function ScannerComponent() {
     const [scannedCode, setScannedCode] = useState('');
     const [isScanning, setIsScanning] = useState(false);
     const [manualEntry, setManualEntry] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     let scanner;
 
    
@@ -62,10 +79,16 @@ function ScannerComponent() {
     // Función que se llama cuando se escanea un código con éxito
     const onScanSuccess = (decodedText) => {
         setScannedCode(decodedText);
-        setIsScanning(false);
+        // Detener el escáner
+        if (scanner) {
+            scanner.clear();
+        }
         const userConfirmation = window.confirm(`Tu código es el: ${decodedText}. ¿Deseas enviar a la API?`);
         if (userConfirmation) {
-            sendToAPI(decodedText);
+            sendToAPI(decodedText,setIsLoading);
+        } else {
+            // Reiniciar el escáner si el usuario no confirma
+            setIsScanning(true);
         }
     };
 
@@ -96,36 +119,43 @@ function ScannerComponent() {
 
             {isScanning && <p>Código escaneado: {scannedCode}</p>}
 
-            {/* Mostrar botones iniciales solo si no se está escaneando ni ingresando manualmente */}
-            {!isScanning && !manualEntry && (
+            {/* Mostrar indicador de carga si isLoading es true */}
+            {isLoading ? (
+                <div className="loading-indicator">Cargando...</div> // Puedes reemplazar esto con un icono de carga
+            ) : (
                 <>
-                    <button onClick={() => setIsScanning(true)}>Iniciar escáner</button>
-                    <button onClick={() => setManualEntry(true)}>Ingresar código</button>
+                    {/* Mostrar botones iniciales solo si no se está escaneando ni ingresando manualmente */}
+                    {!isScanning && !manualEntry && (
+                        <>
+                            <button onClick={() => setIsScanning(true)}>Iniciar escáner</button>
+                            <button onClick={() => setManualEntry(true)}>Ingresar código</button>
+                        </>
+                    )}
+
+                    {/* Mostrar entrada manual y botón de envío si manualEntry es true */}
+                    {manualEntry && (
+                        <div>
+                            <input 
+                                type="text" 
+                                value={scannedCode} 
+                                onChange={(e) => setScannedCode(e.target.value)} 
+                                placeholder="Ingrese el código manualmente"
+                            />
+                            <button onClick={() => {
+                                sendToAPI(scannedCode,setIsLoading);
+                                setScannedCode('');
+                                setManualEntry(false);
+                            }}>
+                                Enviar
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Mostrar botón de reinicio si se está escaneando o ingresando manualmente */}
+                    {(isScanning || manualEntry) && (
+                        <button onClick={resetView}>Volver</button>
+                    )}
                 </>
-            )}
-
-            {/* Mostrar entrada manual y botón de envío si manualEntry es true */}
-            {manualEntry && (
-                <div>
-                    <input 
-                        type="text" 
-                        value={scannedCode} 
-                        onChange={(e) => setScannedCode(e.target.value)} 
-                        placeholder="Ingrese el código manualmente"
-                    />
-                    <button onClick={() => {
-                        sendToAPI(scannedCode);
-                        setScannedCode('');
-                        setManualEntry(false);
-                    }}>
-                        Enviar
-                    </button>
-                </div>
-            )}
-
-            {/* Mostrar botón de reinicio si se está escaneando o ingresando manualmente */}
-            {(isScanning || manualEntry) && (
-                <button onClick={resetView}>Volver</button>
             )}
         </div>
     );

@@ -44,13 +44,15 @@ const checkInternetConnection = () => {
 // Verifica la conexión a intervalos regulares
 setInterval(async () => {
   const isConnected = await checkInternetConnection();
-  console.log("Conectado a Internet:", isConnected);
-  console.log(localStorage.length);
+  //console.log("Conectado a Internet:", isConnected);
+  //console.log(localStorage.length);
   if (isConnected && localStorage.length > 0) {
-    console.log("Un email ha sido almacenado.");
+    //console.log("Un email ha sido almacenado.");
     retryPendingEmails();
   }
-}, 5000);
+}, 60000);
+
+
 
 
 

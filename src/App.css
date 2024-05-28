@@ -1,8 +1,11 @@
 .App {
   text-align: center;
   font-family: 'Roboto', sans-serif;
-  background-color: #f4f4f4;
+  background-color: rgb(226, 226, 226);
   padding: 20px;
+  margin-left: 10vw;
+  margin-right: 10vw;
+  border-bottom: 80%;
 }
 
 .App-header {
